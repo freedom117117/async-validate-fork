@@ -1,3 +1,6 @@
+import _extends from 'babel-runtime/helpers/extends';
+import _Object$keys from 'babel-runtime/core-js/object/keys';
+import _typeof from 'babel-runtime/helpers/typeof';
 import { format, complementError, asyncMap, warning, deepMerge } from './util';
 import validators from './validator/';
 import { messages as defaultMessages, newMessages } from './messages';
@@ -15,23 +18,22 @@ function Schema(descriptor) {
 }
 
 Schema.prototype = {
-  messages(messages) {
-    if (messages) {
-      this._messages = deepMerge(newMessages(), messages);
+  messages: function messages(_messages) {
+    if (_messages) {
+      this._messages = deepMerge(newMessages(), _messages);
     }
     return this._messages;
   },
-  define(rules) {
+  define: function define(rules) {
     if (!rules) {
-      throw new Error(
-        'Cannot configure a schema with no rules');
+      throw new Error('Cannot configure a schema with no rules');
     }
-    if (typeof rules !== 'object' || Array.isArray(rules)) {
+    if ((typeof rules === 'undefined' ? 'undefined' : _typeof(rules)) !== 'object' || Array.isArray(rules)) {
       throw new Error('Rules must be an object');
     }
     this.rules = {};
-    let z;
-    let item;
+    var z = void 0;
+    var item = void 0;
     for (z in rules) {
       if (rules.hasOwnProperty(z)) {
         item = rules[z];
@@ -39,25 +41,32 @@ Schema.prototype = {
       }
     }
   },
-  validate(source_, o = {}, oc, others) {
-    let source = source_;
-    let options = o;
-    let callback = oc;
+  validate: function validate(source_) {
+    var o = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+    var _this = this;
+
+    var oc = arguments[2];
+    var others = arguments[3];
+
+    var source = source_;
+    var options = o;
+    var callback = oc;
     if (typeof options === 'function') {
       callback = options;
       options = {};
     }
-    if (!this.rules || Object.keys(this.rules).length === 0) {
+    if (!this.rules || _Object$keys(this.rules).length === 0) {
       if (callback) {
         callback();
       }
       return;
     }
     function complete(results) {
-      let i;
-      let field;
-      let errors = [];
-      let fields = {};
+      var i = void 0;
+      var field = void 0;
+      var errors = [];
+      var fields = {};
 
       function add(e) {
         if (Array.isArray(e)) {
@@ -84,7 +93,7 @@ Schema.prototype = {
     }
 
     if (options.messages) {
-      let messages = this.messages();
+      var messages = this.messages();
       if (messages === defaultMessages) {
         messages = newMessages();
       }
@@ -93,60 +102,60 @@ Schema.prototype = {
     } else {
       options.messages = this.messages();
     }
-    let arr;
-    let value;
-    const series = {};
-    const keys = options.keys || Object.keys(this.rules);
-    keys.forEach((z) => {
-      arr = this.rules[z];
+    var arr = void 0;
+    var value = void 0;
+    var series = {};
+    var keys = options.keys || _Object$keys(this.rules);
+    keys.forEach(function (z) {
+      arr = _this.rules[z];
       value = source[z];
-      arr.forEach((r) => {
-        let rule = r;
-        if (typeof (rule.transform) === 'function') {
+      arr.forEach(function (r) {
+        var rule = r;
+        if (typeof rule.transform === 'function') {
           if (source === source_) {
-            source = { ...source };
+            source = _extends({}, source);
           }
           value = source[z] = rule.transform(value);
         }
-        if (typeof (rule) === 'function') {
+        if (typeof rule === 'function') {
           rule = {
-            validator: rule,
+            validator: rule
           };
         } else {
-          rule = { ...rule };
+          rule = _extends({}, rule);
         }
-        rule.validator = this.getValidationMethod(rule);
+        rule.validator = _this.getValidationMethod(rule);
         rule.field = z;
         rule.fullField = rule.fullField || z;
-        rule.type = this.getType(rule);
+        rule.type = _this.getType(rule);
         if (!rule.validator) {
           return;
         }
         series[z] = series[z] || [];
         series[z].push({
-          rule,
-          value,
-          source,
-          field: z,
+          rule: rule,
+          value: value,
+          source: source,
+          field: z
         });
       });
     });
-    const errorFields = {};
-    asyncMap(series, options, (data, doIt) => {
-      const rule = data.rule;
-      let deep = (rule.type === 'object' || rule.type === 'array') &&
-        (typeof (rule.fields) === 'object' || typeof (rule.defaultField) === 'object');
-      deep = deep && (rule.required || (!rule.required && data.value));
+    var errorFields = {};
+    asyncMap(series, options, function (data, doIt) {
+      var rule = data.rule;
+      var deep = (rule.type === 'object' || rule.type === 'array') && (_typeof(rule.fields) === 'object' || _typeof(rule.defaultField) === 'object');
+      deep = deep && (rule.required || !rule.required && data.value);
       rule.field = data.field;
       function addFullfield(key, schema) {
-        return {
-          ...schema,
-          fullField: `${rule.fullField}.${key}`,
-        };
+        return _extends({}, schema, {
+          fullField: rule.fullField + '.' + key
+        });
       }
 
-      function cb(e = []) {
-        let errors = e;
+      function cb() {
+        var e = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        var errors = e;
         if (!Array.isArray(errors)) {
           errors = [errors];
         }
@@ -180,62 +189,60 @@ Schema.prototype = {
             return doIt(errors);
           }
 
-          let fieldsSchema = {};
+          var fieldsSchema = {};
           if (rule.defaultField) {
-            for (const k in data.value) {
+            for (var k in data.value) {
               if (data.value.hasOwnProperty(k)) {
                 fieldsSchema[k] = rule.defaultField;
               }
             }
           }
-          fieldsSchema = {
-            ...fieldsSchema,
-            ...data.rule.fields,
-          };
-          for (const f in fieldsSchema) {
+          fieldsSchema = _extends({}, fieldsSchema, data.rule.fields);
+          for (var f in fieldsSchema) {
             if (fieldsSchema.hasOwnProperty(f)) {
-              const fieldSchema = Array.isArray(fieldsSchema[f]) ?
-                fieldsSchema[f] : [fieldsSchema[f]];
+              var fieldSchema = Array.isArray(fieldsSchema[f]) ? fieldsSchema[f] : [fieldsSchema[f]];
               fieldsSchema[f] = fieldSchema.map(addFullfield.bind(null, f));
             }
           }
-          const schema = new Schema(fieldsSchema);
+          var schema = new Schema(fieldsSchema);
           schema.messages(options.messages);
           if (data.rule.options) {
             data.rule.options.messages = options.messages;
             data.rule.options.error = options.error;
           }
-          schema.validate(data.value, data.rule.options || options, (errs) => {
+          schema.validate(data.value, data.rule.options || options, function (errs) {
             doIt(errs && errs.length ? errors.concat(errs) : errs);
           });
         }
       }
 
-      const res = rule.validator(
-        rule, data.value, cb, data.source, options,others);
+      var res = rule.validator(rule, data.value, cb, data.source, options, others);
       if (res && res.then) {
-        res.then(() => cb(), e => cb(e));
+        res.then(function () {
+          return cb();
+        }, function (e) {
+          return cb(e);
+        });
       }
-    }, (results) => {
+    }, function (results) {
       complete(results);
     });
   },
-  getType(rule) {
-    if (rule.type === undefined && (rule.pattern instanceof RegExp)) {
+  getType: function getType(rule) {
+    if (rule.type === undefined && rule.pattern instanceof RegExp) {
       rule.type = 'pattern';
     }
-    if (typeof (rule.validator) !== 'function' &&
-      (rule.type && !validators.hasOwnProperty(rule.type))) {
+    if (typeof rule.validator !== 'function' && rule.type && !validators.hasOwnProperty(rule.type)) {
       throw new Error(format('Unknown rule type %s', rule.type));
     }
     return rule.type || 'string';
   },
-  getValidationMethod(rule) {
+  getValidationMethod: function getValidationMethod(rule) {
     if (typeof rule.validator === 'function') {
       return rule.validator;
     }
-    const keys = Object.keys(rule);
-    const messageIndex = keys.indexOf('message');
+    var keys = _Object$keys(rule);
+    var messageIndex = keys.indexOf('message');
     if (messageIndex !== -1) {
       keys.splice(messageIndex, 1);
     }
@@ -243,7 +250,7 @@ Schema.prototype = {
       return validators.required;
     }
     return validators[this.getType(rule)] || false;
-  },
+  }
 };
 
 Schema.register = function register(type, validator) {
